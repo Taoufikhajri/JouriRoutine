@@ -1,0 +1,136 @@
+@import "tailwindcss";
+
+@theme {
+  --font-display: var(--font-baloo), var(--font-baloo-ar), ui-rounded, system-ui, sans-serif;
+  --font-sans: var(--font-nunito), var(--font-baloo-ar), ui-rounded, system-ui, sans-serif;
+
+  /* Story palette — pastel bases, vibrant accents, deep ink for text */
+  --color-ink: #2a2154;
+  --color-ink-soft: #5b5285;
+  --color-sky: #cfe8ff;
+  --color-cloud: #fffaf3;
+  --color-lilac: #b8a6ff;
+  --color-magic: #7c5cff;
+  --color-magic-dark: #5a3fd6;
+  --color-sun: #ffc93c;
+  --color-sun-dark: #e8a200;
+  --color-coral: #ff7a8a;
+  --color-mint: #5fd3a5;
+  --color-mint-dark: #1f9e6e;
+  --color-peach: #ffd6b0;
+  --color-rose: #ffd1e3;
+
+  --radius-blob: 2rem;
+  --shadow-soft: 0 8px 24px -8px rgb(42 33 84 / 0.18);
+  --shadow-pop: 0 6px 0 0 rgb(42 33 84 / 0.18);
+  --shadow-glow: 0 0 0 4px rgb(255 201 60 / 0.35), 0 10px 30px -6px rgb(255 201 60 / 0.6);
+
+  --animate-float: float 6s ease-in-out infinite;
+  --animate-twinkle: twinkle 2.4s ease-in-out infinite;
+  --animate-bob: bob 1.6s ease-in-out infinite;
+  --animate-drift: drift 60s linear infinite;
+  --animate-wiggle: wiggle 1.2s ease-in-out infinite;
+  --animate-glow: glow 2.2s ease-in-out infinite;
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+  @keyframes twinkle {
+    0%, 100% { opacity: 0.35; transform: scale(0.85); }
+    50% { opacity: 1; transform: scale(1.1); }
+  }
+  @keyframes bob {
+    0%, 100% { transform: translateY(0) rotate(-2deg); }
+    50% { transform: translateY(-6px) rotate(2deg); }
+  }
+  @keyframes drift {
+    from { transform: translateX(-20vw); }
+    to { transform: translateX(120vw); }
+  }
+  @keyframes wiggle {
+    0%, 100% { transform: rotate(0deg); }
+    20% { transform: rotate(-8deg); }
+    40% { transform: rotate(8deg); }
+    60% { transform: rotate(-4deg); }
+    80% { transform: rotate(4deg); }
+  }
+  @keyframes glow {
+    0%, 100% { box-shadow: 0 0 0 3px rgb(255 201 60 / 0.25), 0 8px 24px -8px rgb(255 201 60 / 0.5); }
+    50% { box-shadow: 0 0 0 6px rgb(255 201 60 / 0.45), 0 12px 32px -6px rgb(255 201 60 / 0.8); }
+  }
+}
+
+:root {
+  color-scheme: light;
+}
+
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background: var(--color-cloud);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+}
+
+/* Arabic: the rounded Baloo Bhaijaan face for everything, slightly roomier lines. */
+:lang(ar) body,
+:lang(ar) .font-display {
+  font-family: var(--font-baloo-ar), var(--font-baloo), system-ui, sans-serif;
+}
+:lang(ar) body {
+  line-height: 1.65;
+}
+
+:focus-visible {
+  outline: 3px solid var(--color-magic);
+  outline-offset: 2px;
+  border-radius: 0.75rem;
+}
+
+/* Sky themes by time of day (child area) */
+.sky-morning {
+  background: linear-gradient(180deg, #bfe3ff 0%, #e4f3ff 45%, #fff3df 100%);
+}
+.sky-afternoon {
+  background: linear-gradient(180deg, #a9d8ff 0%, #d9f0ff 50%, #fff0d6 100%);
+}
+.sky-evening {
+  background: linear-gradient(180deg, #2f2a6b 0%, #5b4aa8 40%, #b78ad9 80%, #ffc6d9 100%);
+}
+
+.card-magic {
+  background: rgb(255 255 255 / 0.92);
+  border-radius: var(--radius-blob);
+  box-shadow: var(--shadow-soft);
+  border: 3px solid rgb(255 255 255 / 0.8);
+}
+
+.btn-pop {
+  box-shadow: var(--shadow-pop);
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+}
+.btn-pop:active {
+  transform: translateY(4px);
+  box-shadow: 0 2px 0 0 rgb(42 33 84 / 0.18);
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  scrollbar-width: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

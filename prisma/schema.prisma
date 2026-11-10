@@ -1,0 +1,543 @@
+// Little Star Adventure — relational schema.
+//
+// PostgreSQL everywhere (local development and production on Vercel).
+// DATABASE_URL     → pooled connection string (used by the app)
+// DIRECT_URL       → direct connection string (used by migrations)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ─────────────────────────────── Enums ───────────────────────────────
+
+enum Role {
+  PARENT
+  CHILD
+}
+
+enum ChildLoginMode {
+  PIN
+  PASSWORD
+}
+
+enum RoutineCategory {
+  MORNING
+  SCHOOL
+  AFTER_SCHOOL
+  EVENING
+  WEEKEND
+  RAMADAN
+  CUSTOM
+}
+
+/// What a task is about. Drives badges and parent analytics.
+enum TaskKind {
+  GENERAL
+  PRAYER
+  QURAN
+  ADHKAR
+  READING
+  HOMEWORK
+  HYGIENE
+  TEETH
+  HELPING
+  MANNERS
+  SLEEP
+  MEAL
+  EXERCISE
+  CREATIVE
+  SCHOOL
+}
+
+enum TaskDifficulty {
+  SIMPLE
+  NORMAL
+  IMPORTANT
+  SPECIAL
+}
+
+enum PrayerName {
+  FAJR
+  DHUHR
+  ASR
+  MAGHRIB
+  ISHA
+}
+
+enum RedemptionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum LedgerSource {
+  TASK
+  TASK_UNDO
+  PERFECT_DAY
+  CHEST
+  ACHIEVEMENT
+  REDEMPTION
+  AVATAR_ITEM
+  ADJUSTMENT
+}
+
+enum AchievementRule {
+  /// Count of completions of tasks with a given TaskKind (dimension = kind)
+  COMPLETION_COUNT
+  /// Number of days where a dimension (e.g. "cat:MORNING", "kind:PRAYER") was fully completed
+  FULL_DAYS
+  /// Number of days where at least one task in the dimension was completed
+  ANY_DAYS
+  /// Streak length reached
+  STREAK
+  /// Number of perfect days
+  PERFECT_DAYS
+  /// Total completed tasks ever
+  TOTAL_TASKS
+}
+
+enum AvatarSlot {
+  HAT
+  ACCESSORY
+  COMPANION
+  FRAME
+}
+
+enum NotificationType {
+  REWARD_REQUESTED
+  REWARD_APPROVED
+  REWARD_REJECTED
+  BADGE_UNLOCKED
+  LEVEL_UP
+  STREAK_MILESTONE
+}
+
+enum ChestType {
+  SMALL
+  GOLDEN
+}
+
+// ─────────────────────────────── Identity ───────────────────────────────
+
+model Family {
+  id           String   @id @default(cuid())
+  name         String
+  /// Short code a device uses to show the child "who are you?" login screen.
+  loginCode    String   @unique
+  timezone     String   @default("UTC")
+  locale       String   @default("en")
+  soundEnabled Boolean  @default(true)
+  onboardedAt  DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  parents       ParentProfile[]
+  children      ChildProfile[]
+  rewards       Reward[]
+  notifications Notification[]
+}
+
+model User {
+  id           String    @id @default(cuid())
+  role         Role
+  /// Parents only. Children never need an email.
+  email        String?   @unique
+  /// Children only; unique inside a family (enforced in ChildProfile).
+  username     String?
+  passwordHash String
+  failedLogins Int       @default(0)
+  lockedUntil  DateTime?
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  sessions      Session[]
+  resetTokens   PasswordResetToken[]
+  parentProfile ParentProfile?
+  childProfile  ChildProfile?
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  /// SHA-256 of the random token stored in the cookie (never the raw token).
+  tokenHash String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  tokenHash String    @unique
+  userId    String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model ParentProfile {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  familyId    String
+  displayName String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  family    Family             @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  decisions RewardRedemption[]
+
+  @@index([familyId])
+}
+
+model ChildProfile {
+  id            String         @id @default(cuid())
+  userId        String         @unique
+  familyId      String
+  name          String
+  /// Lower-cased login name, unique per family.
+  loginName     String
+  age           Int?
+  loginMode     ChildLoginMode @default(PIN)
+  /// Cached totals — the XP/Coin ledgers are the source of truth.
+  xp            Int            @default(0)
+  coins         Int            @default(0)
+  currentStreak Int            @default(0)
+  longestStreak Int            @default(0)
+  avatarKey     String         @default("explorer")
+  welcomedAt    DateTime?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  user               User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  family             Family                 @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  routines           Routine[]
+  completions        TaskCompletion[]
+  dailyProgress      DailyProgress[]
+  dailyStats         DailyStat[]
+  xpTransactions     XPTransaction[]
+  coinTransactions   CoinTransaction[]
+  redemptions        RewardRedemption[]
+  achievements       ChildAchievement[]
+  avatarItems        ChildAvatarItem[]
+  chestOpenings      ChestOpening[]
+  quranMemorizations QuranMemorization[]
+  notifications      Notification[]
+
+  @@unique([familyId, loginName])
+  @@index([familyId])
+}
+
+// ─────────────────────────────── Routines ───────────────────────────────
+
+model Routine {
+  id        String          @id @default(cuid())
+  childId   String
+  name      String
+  icon      String          @default("⭐")
+  category  RoutineCategory
+  sortOrder Int             @default(0)
+  isActive  Boolean         @default(true)
+  /// Bitmask of week days (bit 0 = Sunday … bit 6 = Saturday). 127 = every day.
+  daysMask  Int             @default(127)
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  child ChildProfile  @relation(fields: [childId], references: [id], onDelete: Cascade)
+  tasks RoutineTask[]
+
+  @@index([childId, sortOrder])
+}
+
+model RoutineTask {
+  id           String         @id @default(cuid())
+  routineId    String
+  title        String
+  description  String?
+  icon         String         @default("⭐")
+  /// "HH:MM" 24h local time, optional.
+  time         String?
+  kind         TaskKind       @default(GENERAL)
+  difficulty   TaskDifficulty @default(NORMAL)
+  xp           Int            @default(10)
+  coins        Int            @default(2)
+  isRequired   Boolean        @default(true)
+  isActive     Boolean        @default(true)
+  daysMask     Int            @default(127)
+  sortOrder    Int            @default(0)
+  /// Prayer-specific (kind = PRAYER). Ready for a future prayer-time API.
+  prayerName   PrayerName?
+  /// Quran-specific (kind = QURAN).
+  quranMinutes Int?
+  quranPages   Int?
+  quranSurah   String?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  routine     Routine          @relation(fields: [routineId], references: [id], onDelete: Cascade)
+  completions TaskCompletion[]
+
+  @@index([routineId, sortOrder])
+}
+
+model TaskCompletion {
+  id           String   @id @default(cuid())
+  childId      String
+  /// Null once the task is deleted; snapshot fields keep the history readable.
+  taskId       String?
+  /// Local calendar day in the family timezone, "YYYY-MM-DD".
+  date         String
+  xpAwarded    Int
+  coinsAwarded Int
+  /// Snapshot so history survives task edits/deletes.
+  taskTitle    String
+  taskIcon     String
+  taskKind     TaskKind
+  completedAt  DateTime @default(now())
+
+  child ChildProfile @relation(fields: [childId], references: [id], onDelete: Cascade)
+  task  RoutineTask? @relation(fields: [taskId], references: [id], onDelete: SetNull)
+
+  @@unique([childId, taskId, date])
+  @@index([childId, date])
+}
+
+// ─────────────────────────────── Progress ───────────────────────────────
+
+model DailyProgress {
+  id                 String   @id @default(cuid())
+  childId            String
+  date               String
+  totalTasks         Int      @default(0)
+  completedTasks     Int      @default(0)
+  requiredTasks      Int      @default(0)
+  requiredCompleted  Int      @default(0)
+  /// All required tasks done → counts toward the streak.
+  isSuccess          Boolean  @default(false)
+  /// 100% of the day's tasks done → star on the calendar.
+  isPerfect          Boolean  @default(false)
+  perfectBonusGiven  Boolean  @default(false)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  child ChildProfile @relation(fields: [childId], references: [id], onDelete: Cascade)
+
+  @@unique([childId, date])
+}
+
+/// Per-day breakdown by dimension: "cat:MORNING", "kind:PRAYER", …
+model DailyStat {
+  id        String @id @default(cuid())
+  childId   String
+  date      String
+  dimension String
+  total     Int
+  completed Int
+
+  child ChildProfile @relation(fields: [childId], references: [id], onDelete: Cascade)
+
+  @@unique([childId, date, dimension])
+  @@index([childId, dimension])
+}
+
+model XPTransaction {
+  id        String       @id @default(cuid())
+  childId   String
+  amount    Int
+  source    LedgerSource
+  sourceId  String?
+  reason    String
+  createdAt DateTime     @default(now())
+
+  child ChildProfile @relation(fields: [childId], references: [id], onDelete: Cascade)
+
+  @@index([childId, createdAt])
+}
+
+model CoinTransaction {
+  id        String       @id @default(cuid())
+  childId   String
+  amount    Int
+  source    LedgerSource
+  sourceId  String?
+  reason    String
+  createdAt DateTime     @default(now())
+
+  child ChildProfile @relation(fields: [childId], references: [id], onDelete: Cascade)
+
+  @@index([childId, createdAt])
+}
+
+model ChestOpening {
+  id        String    @id @default(cuid())
+  childId   String
+  date      String
+  type      ChestType
+  coins     Int       @default(0)
+  xp        Int       @default(0)
+  itemKey   String?
+  openedAt  DateTime  @default(now())
+
+  child ChildProfile @relation(fields: [childId], references: [id], onDelete: Cascade)
+
+  @@unique([childId, date, type])
+}
+
+// ─────────────────────────────── Rewards ───────────────────────────────
+
+model Reward {
+  id        String   @id @default(cuid())
+  familyId  String
+  title     String
+  icon      String   @default("🎁")
+  cost      Int
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  family      Family             @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  redemptions RewardRedemption[]
+
+  @@index([familyId])
+}
+
+model RewardRedemption {
+  id          String           @id @default(cuid())
+  rewardId    String
+  childId     String
+  /// Cost snapshot at request time.
+  cost        Int
+  rewardTitle String
+  rewardIcon  String
+  status      RedemptionStatus @default(PENDING)
+  requestedAt DateTime         @default(now())
+  decidedAt   DateTime?
+  decidedById String?
+
+  reward    Reward         @relation(fields: [rewardId], references: [id], onDelete: Cascade)
+  child     ChildProfile   @relation(fields: [childId], references: [id], onDelete: Cascade)
+  decidedBy ParentProfile? @relation(fields: [decidedById], references: [id], onDelete: SetNull)
+
+  @@index([childId, status])
+}
+
+// ─────────────────────────────── Achievements ───────────────────────────────
+
+model Achievement {
+  id          String          @id @default(cuid())
+  key         String          @unique
+  title       String
+  description String
+  icon        String
+  rule        AchievementRule
+  /// e.g. "kind:QURAN", "cat:MORNING", "QURAN" depending on rule.
+  dimension   String?
+  threshold   Int
+  xpBonus     Int             @default(0)
+  coinBonus   Int             @default(0)
+  sortOrder   Int             @default(0)
+
+  children ChildAchievement[]
+}
+
+model ChildAchievement {
+  id            String    @id @default(cuid())
+  childId       String
+  achievementId String
+  unlockedAt    DateTime  @default(now())
+  seenAt        DateTime?
+
+  child       ChildProfile @relation(fields: [childId], references: [id], onDelete: Cascade)
+  achievement Achievement  @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+
+  @@unique([childId, achievementId])
+}
+
+// ─────────────────────────────── Avatars ───────────────────────────────
+
+model Avatar {
+  id        String @id @default(cuid())
+  key       String @unique
+  name      String
+  emoji     String
+  color     String
+  sortOrder Int    @default(0)
+}
+
+model AvatarItem {
+  id             String     @id @default(cuid())
+  key            String     @unique
+  name           String
+  emoji          String
+  slot           AvatarSlot
+  /// 0 = free. Otherwise bought with coins.
+  cost           Int        @default(0)
+  /// If set, unlocked by this achievement instead of coins.
+  achievementKey String?
+  sortOrder      Int        @default(0)
+
+  owners ChildAvatarItem[]
+}
+
+model ChildAvatarItem {
+  id         String   @id @default(cuid())
+  childId    String
+  itemId     String
+  equipped   Boolean  @default(false)
+  acquiredAt DateTime @default(now())
+
+  child ChildProfile @relation(fields: [childId], references: [id], onDelete: Cascade)
+  item  AvatarItem   @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@unique([childId, itemId])
+}
+
+// ─────────────────────────────── Quran ───────────────────────────────
+
+model QuranMemorization {
+  id        String   @id @default(cuid())
+  childId   String
+  surah     String
+  /// 0–100
+  progress  Int      @default(0)
+  sortOrder Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  child ChildProfile @relation(fields: [childId], references: [id], onDelete: Cascade)
+
+  @@unique([childId, surah])
+}
+
+// ─────────────────────────────── Notifications ───────────────────────────────
+
+model Notification {
+  id        String           @id @default(cuid())
+  familyId  String
+  /// Null → addressed to the parents of the family.
+  childId   String?
+  type      NotificationType
+  title     String
+  body      String?
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  family Family        @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  child  ChildProfile? @relation(fields: [childId], references: [id], onDelete: Cascade)
+
+  @@index([familyId, childId, readAt])
+}

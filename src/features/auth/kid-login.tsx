@@ -1,6 +1,6 @@
 "use client";
 
-import { startTransition, useActionState, useState } from "react";
+import { startTransition, useActionState, useEffect, useState } from "react";
 import { Delete } from "lucide-react";
 import { motion } from "motion/react";
 import { Button, SubmitButton } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { Alert, Input } from "@/components/ui/form";
 import { AvatarView, type EquippedLook } from "@/features/avatar/avatar-view";
 import { useT } from "@/i18n/client";
 import { cn } from "@/lib/cn";
+import { playSound, setSoundVolume, type SoundName } from "@/lib/sound";
 import { childLoginAction, forgetFamilyAction, rememberFamilyAction } from "@/server/actions/auth";
 
 interface KidOption {
@@ -18,7 +19,12 @@ interface KidOption {
   look: EquippedLook;
 }
 
-export function KidLogin({ family }: { family: { name: string; children: KidOption[] } | null }) {
+interface FamilySound {
+  soundOn: boolean;
+  volume: number;
+}
+
+export function KidLogin({ family }: { family: ({ name: string; children: KidOption[] } & FamilySound) | null }) {
   const t = useT();
   const [picked, setPicked] = useState<KidOption | null>(family?.children.length === 1 ? family.children[0] : null);
 
@@ -33,7 +39,10 @@ export function KidLogin({ family }: { family: { name: string; children: KidOpti
             <button
               key={c.id}
               type="button"
-              onClick={() => setPicked(c)}
+              onClick={() => {
+                playSound("pop", family.soundOn);
+                setPicked(c);
+              }}
               className="btn-pop flex w-40 flex-col items-center gap-2 rounded-3xl bg-white p-4 ring-2 ring-ink/5 hover:ring-magic/40"
             >
               <AvatarView avatarKey={c.avatarKey} look={c.look} size="lg" />
@@ -52,7 +61,7 @@ export function KidLogin({ family }: { family: { name: string; children: KidOpti
         <AvatarView avatarKey={picked.avatarKey} look={picked.look} size="lg" />
       </motion.div>
       <p className="mt-2 font-display text-2xl font-bold">{picked.name}</p>
-      {picked.loginMode === "PIN" ? <PinPad childId={picked.id} /> : <PasswordForm childId={picked.id} />}
+      {picked.loginMode === "PIN" ? <PinPad childId={picked.id} sound={family} /> : <PasswordForm childId={picked.id} />}
       {family.children.length > 1 && (
         <button type="button" onClick={() => setPicked(null)} className="mt-4 text-sm font-bold text-ink-soft underline">
           {t.dir === "rtl" ? "→" : "←"} {t("auth.whoAreYou")}
@@ -105,8 +114,12 @@ function ForgetFamily() {
   );
 }
 
-function PinPad({ childId }: { childId: string }) {
+function PinPad({ childId, sound }: { childId: string; sound: FamilySound }) {
   const t = useT();
+  const play = (s: SoundName) => {
+    setSoundVolume(sound.volume / 100);
+    playSound(s, sound.soundOn);
+  };
   const [pin, setPin] = useState("");
   const [state, action, pending] = useActionState(childLoginAction, {});
   const [shakes, setShakes] = useState(0);
@@ -116,10 +129,16 @@ function PinPad({ childId }: { childId: string }) {
     setSeen(state);
     if (state.error) setShakes((n) => n + 1);
   }
+  useEffect(() => {
+    if (!shakes) return;
+    setSoundVolume(sound.volume / 100);
+    playSound("pinError", sound.soundOn);
+  }, [shakes, sound.soundOn, sound.volume]);
 
   const press = (d: string) => {
     if (pending) return;
     const next = (pin + d).slice(0, 4);
+    play("pin");
     setPin(next);
     if (next.length === 4) {
       const fd = new FormData();

@@ -19,7 +19,7 @@ export default async function ChildLayout({ children }: LayoutProps<"/child">) {
   const part = dayPart(hourIn(family.timezone));
 
   return (
-    <GameProvider childName={child.name} soundOn={family.soundEnabled}>
+    <GameProvider childName={child.name} soundOn={family.soundEnabled} volume={family.soundVolume}>
       <MagicSky part={part} />
       <div className="min-h-dvh pb-32">
         <Hud xp={child.xp} coins={child.coins} streak={streak} avatarKey={child.avatarKey} look={look} />

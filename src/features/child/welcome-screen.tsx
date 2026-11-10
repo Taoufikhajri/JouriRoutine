@@ -17,7 +17,7 @@ export function WelcomeScreen({ name, avatarKey, look }: { name: string; avatarK
   const [pending, start] = useTransition();
   const go = () =>
     start(async () => {
-      play("levelUp");
+      play("welcome");
       await markWelcomedAction();
       router.push("/child/today");
     });

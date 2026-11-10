@@ -11,6 +11,7 @@ import type { DayPart } from "@/lib/dates";
 import type { TodayRoutine } from "@/server/queries/child";
 import { ChestPanel } from "./chest-panel";
 import { TaskCard } from "./task-card";
+import { useGame } from "./game/game-provider";
 import { useMissions } from "./use-missions";
 
 interface Props {
@@ -111,6 +112,7 @@ export function TodayBoard({ name, part, routines, chests, notices }: Props) {
 }
 
 function RoutineSection({ routine, m }: { routine: TodayRoutine; m: ReturnType<typeof useMissions> }) {
+  const { play } = useGame();
   const done = routine.tasks.filter(m.isDone).length;
   const complete = done === routine.tasks.length;
   const [open, setOpen] = useState(!complete);
@@ -125,7 +127,10 @@ function RoutineSection({ routine, m }: { routine: TodayRoutine; m: ReturnType<t
     <section aria-labelledby={`r-${routine.id}`} className="rounded-[2rem] bg-white/55 p-2 backdrop-blur-sm sm:p-3">
       <button
         type="button"
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => {
+          play("tap");
+          setOpen((o) => !o);
+        }}
         aria-expanded={open}
         className="flex w-full items-center gap-3 rounded-3xl px-2 py-2 text-start"
       >

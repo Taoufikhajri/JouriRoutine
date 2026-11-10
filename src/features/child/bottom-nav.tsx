@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useT } from "@/i18n/client";
 import { cn } from "@/lib/cn";
+import { useGame } from "./game/game-provider";
 
 const ITEMS = [
   { href: "/child/today", icon: "🏠", label: "child.nav.today" },
@@ -16,6 +17,7 @@ const ITEMS = [
 export function BottomNav({ pendingBadge }: { pendingBadge?: number }) {
   const path = usePathname();
   const t = useT();
+  const { play } = useGame();
   return (
     <nav aria-label={t("child.nav.main")} className="fixed inset-x-0 bottom-0 z-40 px-3 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
       <ul className="mx-auto grid max-w-xl grid-cols-5 gap-1 rounded-[1.75rem] bg-white/95 p-1.5 shadow-[0_-4px_30px_-10px_rgba(42,33,84,0.35)] backdrop-blur">
@@ -25,6 +27,7 @@ export function BottomNav({ pendingBadge }: { pendingBadge?: number }) {
             <li key={it.href}>
               <Link
                 href={it.href}
+                onClick={() => !active && play("nav")}
                 aria-current={active ? "page" : undefined}
                 className={cn(
                   "relative flex flex-col items-center gap-0.5 rounded-2xl py-2 transition-colors",

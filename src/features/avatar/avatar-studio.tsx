@@ -35,12 +35,15 @@ export function AvatarStudio({ avatarKey, items, coins }: { avatarKey: string; i
   const [err, setErr] = useState<string | null>(null);
   const look: EquippedLook = Object.fromEntries(items.filter((i) => i.equipped).map((i) => [i.slot, i.emoji]));
 
-  const run = (fn: () => Promise<{ ok: boolean; error?: string }>) =>
+  const run = (fn: () => Promise<{ ok: boolean; error?: string }>, sound: "tap" | "equip" | "buy" = "tap") =>
     start(async () => {
       setErr(null);
-      play("tap");
       const r = await fn();
-      if (!r.ok) setErr(r.error ?? t("common.somethingWrong"));
+      if (r.ok) play(sound);
+      else {
+        play("pinError");
+        setErr(r.error ?? t("common.somethingWrong"));
+      }
     });
 
   return (
@@ -58,7 +61,7 @@ export function AvatarStudio({ avatarKey, items, coins }: { avatarKey: string; i
               key={a.key}
               type="button"
               disabled={pending}
-              onClick={() => run(() => chooseAvatarAction(a.key))}
+              onClick={() => run(() => chooseAvatarAction(a.key), "equip")}
               aria-pressed={a.key === avatarKey}
               className={cn("shrink-0 rounded-3xl p-1.5 ring-4", a.key === avatarKey ? "ring-magic" : "ring-transparent hover:ring-lilac/50")}
               aria-label={t.avatar(a.key, a.name)}
@@ -80,7 +83,7 @@ export function AvatarStudio({ avatarKey, items, coins }: { avatarKey: string; i
                   <button
                     type="button"
                     disabled={pending || (!i.owned && (!!i.lockedBy || coins < i.cost))}
-                    onClick={() => run(() => (i.owned ? toggleItemAction(i.id) : buyItemAction(i.id)))}
+                    onClick={() => run(() => (i.owned ? toggleItemAction(i.id) : buyItemAction(i.id)), i.owned ? "equip" : "buy")}
                     className={cn(
                       "flex w-full flex-col items-center rounded-2xl border-[3px] p-2 text-center transition disabled:cursor-not-allowed",
                       i.equipped ? "border-magic bg-lilac/20" : "border-ink/5 bg-white hover:border-lilac",

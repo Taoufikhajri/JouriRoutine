@@ -15,7 +15,7 @@ export default async function SettingsPage() {
     <div>
       <PageHeader title={t("parent.settings.title")} />
       <SettingsForms
-        family={{ name: family.name, timezone: family.timezone, soundEnabled: family.soundEnabled, loginCode: family.loginCode, locale: isLocale(family.locale) ? family.locale : "en" }}
+        family={{ name: family.name, timezone: family.timezone, soundEnabled: family.soundEnabled, soundVolume: family.soundVolume, loginCode: family.loginCode, locale: isLocale(family.locale) ? family.locale : "en" }}
         email={user.email ?? ""}
       />
     </div>

@@ -55,7 +55,16 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
       {asKid ? (
         <KidLogin
           key={family?.loginCode ?? "none"}
-          family={family ? { name: family.name, children: family.children.map((c) => ({ ...c, look: looks[c.id] ?? {} })) } : null}
+          family={
+            family
+              ? {
+                  name: family.name,
+                  soundOn: family.soundEnabled,
+                  volume: family.soundVolume,
+                  children: family.children.map((c) => ({ ...c, look: looks[c.id] ?? {} })),
+                }
+              : null
+          }
         />
       ) : (
         <ParentLoginForm />

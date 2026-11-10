@@ -202,13 +202,13 @@ export async function updateFamilyAction(_: ActionState, fd: FormData): Promise<
   const t = await getT();
   const { family } = await requireParent();
   const parsed = z
-    .object({ name: z.string().trim().min(1, "errors.required").max(50), timezone: z.string().max(64), locale: z.string().refine(isLocale) })
+    .object({ name: z.string().trim().min(1, "errors.required").max(50), timezone: z.string().max(64), locale: z.string().refine(isLocale), soundVolume: z.coerce.number().int().min(0).max(100).default(60) })
     .safeParse(Object.fromEntries(fd));
   if (!parsed.success) return fieldErrors(parsed.error, t);
   const locale = parsed.data.locale as Locale;
   await db.family.update({
     where: { id: family.id },
-    data: { name: parsed.data.name, timezone: safeTz(parsed.data.timezone), soundEnabled: fd.get("soundEnabled") === "on", locale },
+    data: { name: parsed.data.name, timezone: safeTz(parsed.data.timezone), soundEnabled: fd.get("soundEnabled") === "on", soundVolume: parsed.data.soundVolume, locale },
   });
   if (locale !== family.locale && fd.get("translateContent") === "on") {
     await db.$transaction((tx) => translateFamilyContent(tx, family.id, locale), { timeout: 30000 });

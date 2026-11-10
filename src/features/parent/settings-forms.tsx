@@ -1,11 +1,12 @@
 "use client";
 
-import { useActionState, useSyncExternalStore, useTransition } from "react";
+import { useActionState, useState, useSyncExternalStore, useTransition } from "react";
 import { RefreshCw } from "lucide-react";
 import { Button, SubmitButton } from "@/components/ui/button";
 import { Alert, Field, Input, Select } from "@/components/ui/form";
 import { LOCALES, type Locale } from "@/i18n";
 import { useT } from "@/i18n/client";
+import { playSound, setSoundVolume } from "@/lib/sound";
 import { changePasswordAction, regenerateFamilyCodeAction, updateFamilyAction } from "@/server/actions/parent-family";
 
 
@@ -15,9 +16,16 @@ const clientZones = () => (cachedZones ??= typeof Intl.supportedValuesOf === "fu
 const NO_ZONES: string[] = [];
 const serverZones = () => NO_ZONES;
 
-export function SettingsForms({ family, email }: { family: { name: string; timezone: string; soundEnabled: boolean; loginCode: string; locale: Locale }; email: string }) {
+const VOLUME_STEPS = [30, 60, 100];
+
+export function SettingsForms({ family, email }: { family: { name: string; timezone: string; soundEnabled: boolean; soundVolume: number; loginCode: string; locale: Locale }; email: string }) {
   const t = useT();
   const [fState, fAction] = useActionState(updateFamilyAction, {});
+  const [vol, setVol] = useState(String(VOLUME_STEPS.reduce((a, b) => (Math.abs(b - family.soundVolume) < Math.abs(a - family.soundVolume) ? b : a))));
+  const trySound = () => {
+    setSoundVolume(Number(vol) / 100);
+    playSound("complete", true);
+  };
   const [pState, pAction] = useActionState(changePasswordAction, {});
   const [pending, start] = useTransition();
   const zones = useSyncExternalStore(noopSubscribe, clientZones, serverZones);
@@ -57,6 +65,18 @@ export function SettingsForms({ family, email }: { family: { name: string; timez
             <input type="checkbox" name="soundEnabled" defaultChecked={family.soundEnabled} className="size-5 accent-magic" />
             {t("parent.settings.sound")}
           </label>
+          <div className="flex flex-wrap items-end gap-3">
+            <Field label={t("parent.settings.volume")} htmlFor="fam-vol" className="min-w-40 flex-1">
+              <Select id="fam-vol" name="soundVolume" value={vol} onChange={(e) => setVol(e.target.value)}>
+                <option value="30">{t("parent.settings.volumeSoft")}</option>
+                <option value="60">{t("parent.settings.volumeMedium")}</option>
+                <option value="100">{t("parent.settings.volumeLoud")}</option>
+              </Select>
+            </Field>
+            <Button type="button" variant="outline" onClick={trySound}>
+              {t("parent.settings.testSound")}
+            </Button>
+          </div>
           <SubmitButton>{t("common.save")}</SubmitButton>
         </form>
       </section>

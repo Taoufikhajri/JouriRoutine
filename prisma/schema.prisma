@@ -133,6 +133,8 @@ model Family {
   timezone     String   @default("UTC")
   locale       String   @default("en")
   soundEnabled Boolean  @default(true)
+  /// 0–100, master volume of the kids' sound effects.
+  soundVolume  Int      @default(60)
   onboardedAt  DateTime?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt

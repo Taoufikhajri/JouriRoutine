@@ -6,7 +6,10 @@ A magical, game-like daily-routine app for children (built first for a 7-year-ol
 
 ## Quick start (local)
 
-The app uses **PostgreSQL**. The easiest free option is [Neon](https://neon.tech): create a project, then a second branch named `dev` so local testing never touches real family data.
+The app uses **PostgreSQL**. Two easy options for your computer:
+
+- **Local, no account:** run `npx prisma dev --name jouri --detach`. It prints a `postgres://…localhost:51214…` address; put it in `.env` for both variables and add `&connection_limit=1&pgbouncer=true` to the end (the local server accepts one connection at a time).
+- **Cloud:** a separate database (or Neon `dev` branch) so local testing never touches real family data.
 
 ```bash
 npm install
@@ -104,6 +107,12 @@ A day is a `YYYY-MM-DD` string in the **family's timezone**. A day counts toward
 | 4 — Notifications | 🟡 In-app only (reward requests, badges, level-ups, streaks) |
 | 4 — Ramadan mode | 🟡 Ramadan routine template (off by default; switch it on from Routines) |
 | 4 — Advanced Quran tracking | 🟡 Memorization progress per surah (parent edits, child sees bars) |
+
+### Sound effects
+- All sounds are generated in the browser (`src/lib/sound.ts`): no audio files, and nothing plays until the child taps.
+- PIN keys, wrong PIN ("oh-oh"), menu taps, mission done (pop → chime → coin), undo, badges, level-up fanfare, perfect day, streak, chest wobble and opening, wishes, wearing items, welcome melody.
+- Parents: Settings → switch sound off entirely, or choose Soft / Medium / Loud (with a "Try a sound" button).
+- Kids: the 🔊 button in the top bar mutes just that device.
 
 ### Languages (English · Français · العربية)
 - The **family language** (Parent → Settings) applies to the parent area and the kids' app. The signed-out pages have their own language chips, remembered in a cookie.

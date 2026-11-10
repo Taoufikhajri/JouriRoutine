@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Family" ADD COLUMN "soundVolume" INTEGER NOT NULL DEFAULT 60;

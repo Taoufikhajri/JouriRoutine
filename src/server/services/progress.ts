@@ -68,10 +68,16 @@ export async function recomputeDay(db: DB, childId: string, date: string) {
     update: { totalTasks: total, completedTasks: completed, requiredTasks: required, requiredCompleted, isPerfect, isSuccess },
   });
 
-  await db.dailyStat.deleteMany({ where: { childId, date } });
-  if (dims.size) {
-    await db.dailyStat.createMany({
-      data: [...dims.entries()].map(([dimension, v]) => ({ childId, date, dimension, total: v.total, completed: v.completed })),
+  // Upsert each dimension instead of delete-then-insert: two page loads can
+  // recompute the same day at the same time, and PostgreSQL's ON CONFLICT
+  // upsert keeps that race safe.
+  const entries = [...dims.entries()];
+  await db.dailyStat.deleteMany({ where: { childId, date, dimension: { notIn: entries.map(([d]) => d) } } });
+  for (const [dimension, v] of entries) {
+    await db.dailyStat.upsert({
+      where: { childId_date_dimension: { childId, date, dimension } },
+      create: { childId, date, dimension, total: v.total, completed: v.completed },
+      update: { total: v.total, completed: v.completed },
     });
   }
   return progress;

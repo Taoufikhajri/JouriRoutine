@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { AvatarView, type EquippedLook } from "@/features/avatar/avatar-view";
 import { levelForXp } from "@/config/game";
 import { useT } from "@/i18n/client";
+import { useGame } from "./game/game-provider";
 
 function useCountUp(value: number) {
   const [shown, setShown] = useState(value);
@@ -26,6 +27,7 @@ function useCountUp(value: number) {
 /** Top game HUD: avatar, level + XP bar, streak and coin wallet. */
 export function Hud({ xp, coins, streak, avatarKey, look }: { xp: number; coins: number; streak: number; avatarKey: string; look: EquippedLook }) {
   const t = useT();
+  const { soundOn, muted, toggleMute } = useGame();
   const lv = levelForXp(xp);
   const shownXp = useCountUp(xp);
   const shownCoins = useCountUp(coins);
@@ -65,6 +67,18 @@ export function Hud({ xp, coins, streak, avatarKey, look }: { xp: number; coins:
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-1.5">
+          {soundOn && (
+            <button
+              type="button"
+              onClick={toggleMute}
+              aria-pressed={!muted}
+              aria-label={muted ? t("child.soundOff") : t("child.soundOn")}
+              title={muted ? t("child.soundOff") : t("child.soundOn")}
+              className="flex size-9 items-center justify-center rounded-2xl bg-lilac/25 text-lg"
+            >
+              <span aria-hidden>{muted ? "🔇" : "🔊"}</span>
+            </button>
+          )}
           <span
             className="flex items-center gap-1 rounded-2xl bg-[#ffe6d6] px-2.5 py-1.5 font-display font-extrabold"
             aria-label={t("child.streakAria", { count: streak })}

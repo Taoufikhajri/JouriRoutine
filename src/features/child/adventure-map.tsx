@@ -9,6 +9,7 @@ import { useT } from "@/i18n/client";
 import { cn } from "@/lib/cn";
 import type { TodayRoutine, TodayTask } from "@/server/queries/child";
 import { TaskCard } from "./task-card";
+import { useGame } from "./game/game-provider";
 import { useMissions } from "./use-missions";
 
 type Node =
@@ -20,6 +21,7 @@ const TASK_GAP = 96;
 
 export function AdventureMap({ routines, avatarKey, look }: { routines: TodayRoutine[]; avatarKey: string; look: EquippedLook }) {
   const t = useT();
+  const { play } = useGame();
   const m = useMissions(routines);
   const [open, setOpen] = useState<TodayTask | null>(null);
 
@@ -125,7 +127,10 @@ export function AdventureMap({ routines, avatarKey, look }: { routines: TodayRou
             <button
               key={n.task.id}
               type="button"
-              onClick={() => setOpen(n.task)}
+              onClick={() => {
+                play("tap");
+                setOpen(n.task);
+              }}
               className="absolute -translate-x-1/2 -translate-y-1/2"
               style={{ left: `${n.x}%`, top: n.y }}
               aria-label={m.isDone(n.task) ? `${n.task.title} ${t("child.doneSuffix")}` : n.task.title}

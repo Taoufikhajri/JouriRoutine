@@ -173,6 +173,7 @@ function ChestReveal({ e, onDone }: { e: Extract<GameEvent, { type: "chest" }>; 
   const { play } = useGame();
   const t = useT();
   useEffect(() => {
+    play("chestShake");
     const id = setTimeout(() => {
       setOpen(true);
       play("chest");
@@ -267,14 +268,14 @@ export function CelebrationLayer({ item, onDone }: { item: { id: number; e: Game
         </BigMoment>
       )}
       {event?.type === "perfect" && (
-        <BigMoment key={k} onDone={onDone} sound="badge">
+        <BigMoment key={k} onDone={onDone} sound="perfect">
           <Mascot className="size-28 animate-bob" mood="wow" />
           <p className="font-display text-4xl font-extrabold text-magic-dark">{t("child.perfectDay")}</p>
           <p className="font-display text-xl font-bold">{t("child.perfectBonus", { count: event.bonus })}</p>
         </BigMoment>
       )}
       {event?.type === "streak" && (
-        <BigMoment key={k} onDone={onDone} sound="badge">
+        <BigMoment key={k} onDone={onDone} sound="streak">
           <span className="text-8xl" aria-hidden>
             🔥
           </span>

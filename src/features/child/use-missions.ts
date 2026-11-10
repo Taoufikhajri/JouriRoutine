@@ -27,6 +27,7 @@ export function useMissions(routines: TodayRoutine[]) {
       if (busy) return;
       setBusy(task.id);
       setError(null);
+      play("pop");
       setOverrides((o) => ({ ...o, [task.id]: true }));
       const res = await completeTaskAction(task.id);
       setBusy(null);
@@ -43,7 +44,7 @@ export function useMissions(routines: TodayRoutine[]) {
       if (r.levelUp) events.push({ type: "levelUp", ...r.levelUp });
       celebrate(events);
     },
-    [busy, celebrate],
+    [busy, celebrate, play],
   );
 
   const undo = useCallback(

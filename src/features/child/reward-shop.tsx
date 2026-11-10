@@ -34,7 +34,7 @@ export function RewardShop({ rewards, wallet, wishes }: { rewards: RewardItem[];
     const res = await requestRewardAction(r.id);
     setBusy(null);
     if (res.ok) {
-      play("coin");
+      play("wish");
       setMsg({ tone: "success", text: `${r.icon} ${t("child.shop.sent")}` });
     } else setMsg({ tone: "error", text: res.error });
   };
